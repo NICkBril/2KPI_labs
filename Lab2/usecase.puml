@@ -1,0 +1,66 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "Гість\n(неавторизований користувач)" as Guest
+actor "Клієнт\n(авторизований користувач)" as Customer
+actor "Платіжна система\n(Payment Gateway)" as Gateway
+
+rectangle "Система iCARus" {
+
+    usecase "Переглянути каталог\nавтомобілів" as UC1
+    usecase "Перевірити доступність\nавтомобілів на період" as UC2
+    usecase "Зареєструватися" as UC3
+
+    usecase "Створити оренду" as UC4
+    usecase "Перевірити доступність\nавтомобіля" as UC5
+    usecase "Розрахувати загальну\nвартість оренди" as UC6
+
+    usecase "Оплатити оренду" as UC7
+    usecase "Обробити платіж" as UC8
+    usecase "Зафіксувати результат\nоплати" as UC9
+
+    usecase "Скасувати власну оренду" as UC10
+    usecase "Автоматично скасувати оренду\nза непідтвердженої оплати\nпротягом 24 годин" as UC11
+}
+
+Guest -- UC1
+Guest -- UC2
+Guest -- UC3
+
+Customer -- UC1
+Customer -- UC2
+Customer -- UC4
+Customer -- UC7
+Customer -- UC10
+
+Gateway -- UC8
+
+UC4 ..> UC5 : <<include>>
+UC4 ..> UC6 : <<include>>
+UC7 ..> UC8 : <<include>>
+UC8 ..> UC9 : <<include>>
+
+note right of UC4
+  Оренда створюється лише за умови,
+  що клієнт авторизований,
+  а автомобіль доступний
+  протягом усього періоду.
+end note
+
+note right of UC11
+  Якщо оплату не підтверджено
+  протягом 24 годин після
+  запланованого початку оренди,
+  система скасовує її та звільняє
+  часовий інтервал автомобіля.
+end note
+
+note bottom of UC10
+  Клієнт може скасовувати
+  лише власні оренди.
+end note
+
+@enduml
