@@ -1,0 +1,97 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+
+actor "Користувач" as User
+actor "Гість" as Guest
+actor "Клієнт" as Customer
+actor "Платіжна система\n(Payment Gateway)" as Gateway <<зовнішній сервіс>>
+
+Guest --|> User
+Customer --|> User
+
+rectangle "Система iCARus" {
+
+    usecase "UC-01\nПереглянути каталог\nавтомобілів" as UC_Catalog
+    usecase "UC-02\nПереглянути деталі\nавтомобіля" as UC_Details
+    usecase "UC-03\nПеревірити доступність\nна обраний період" as UC_Availability
+    usecase "UC-04\nВизначити доступність\nавтомобіля на період" as UC_Check
+
+    usecase "UC-05\nЗареєструватися" as UC_Register
+    usecase "UC-06\nПеревірити дані реєстрації\nта унікальність email" as UC_Validate
+
+    usecase "UC-07\nОформити оренду" as UC_Create
+    usecase "UC-08\nРозрахувати загальну\nвартість оренди" as UC_Price
+    usecase "UC-09\nЗапропонувати вхід\nабо реєстрацію" as UC_AuthRequired
+    usecase "UC-10\nПовідомити про недоступність\nавтомобіля" as UC_Conflict
+
+    usecase "UC-11\nОплатити оренду" as UC_Pay
+    usecase "UC-12\nОбробити платіжний\nзапит" as UC_ProcessPayment
+    usecase "UC-13\nЗафіксувати успішну\nоплату" as UC_Confirm
+
+    usecase "UC-14\nСкасувати власну оренду" as UC_Cancel
+
+    usecase "UC-15\nАвтоматично скасувати оренду\nза непідтвердженої оплати" as UC_AutoCancel
+    usecase "UC-16\nЗвільнити часовий\nінтервал автомобіля" as UC_Release
+}
+
+' --- Асоціації акторів ---
+User -- UC_Catalog
+User -- UC_Availability
+User -- UC_Create
+Guest -- UC_Register
+Customer -- UC_Pay
+Customer -- UC_Cancel
+Gateway -- UC_ProcessPayment
+Gateway -- UC_Confirm
+
+' --- include (обов'язкова поведінка) ---
+UC_Register ..> UC_Validate : <<include>>
+UC_Availability ..> UC_Check : <<include>>
+UC_Create ..> UC_Check : <<include>>
+UC_Create ..> UC_Price : <<include>>
+UC_Pay ..> UC_ProcessPayment : <<include>>
+UC_Cancel ..> UC_Release : <<include>>
+UC_AutoCancel ..> UC_Release : <<include>>
+
+' --- extend (умовна поведінка) ---
+UC_Details ..> UC_Catalog : <<extend>>\n(користувач обрав авто)
+UC_AuthRequired ..> UC_Create : <<extend>>\n(користувач не авторизований)
+UC_Conflict ..> UC_Create : <<extend>>\n(період перетинається\nз іншою орендою)
+UC_Confirm ..> UC_ProcessPayment : <<extend>>\n(отримано підтвердження\nуспішної оплати)
+
+note bottom of UC_Check
+  Враховує статус авто та перетини
+  активних і запланованих оренд.
+  Повторюється під час створення оренди.
+end note
+
+note bottom of UC_Confirm
+  Payment.status = "сплачено".
+  Поки оплату не підтверджено,
+  початок користування авто заборонений (SD-3).
+end note
+
+note bottom of UC_AutoCancel
+  Запускається системою (таймер):
+  24 год після Rental.startDate
+  без підтвердженої оплати → "скасована".
+end note
+
+note bottom of UC_Release
+  Скасовані оренди не блокують авто
+  (SD-1; критерії моделі даних).
+end note
+
+note bottom of UC_Cancel
+  Клієнт скасовує лише власну оренду (UB-2).
+end note
+
+@enduml
