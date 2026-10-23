@@ -30,8 +30,7 @@ rectangle "Система iCARus" {
     usecase "UC-07\nПідтвердити оплату" as UC_Confirm
 
     usecase "UC-08\nСкасувати власну оренду" as UC_Cancel
-
-    usecase "UC-09\nАвтоматично скасувати\nнеоплачену оренду" as UC_AutoCancel
+    usecase "UC-09\nПереглянути власні\nоренди" as UC_MyRentals
 }
 
 ' --- Асоціації акторів ---
@@ -41,6 +40,7 @@ User -- UC_Create
 Guest -- UC_Register
 Customer -- UC_Pay
 Customer -- UC_Cancel
+Customer -- UC_MyRentals
 Gateway -- UC_Pay
 Gateway -- UC_Confirm
 
@@ -58,17 +58,17 @@ note bottom of UC_Create
   Перетин періодів: UNB-1, G-3.
 end note
 
+note bottom of UC_Pay
+  Якщо оренду не оплачено за 24 год після
+  Rental.startDate, система сама її скасовує
+  і звільняє період авто (UNB-3, G-5).
+end note
+
 note bottom of UC_Confirm
   Payment.status = "сплачено" (ED-4).
   Оренда оплачена, коли сума платежів
   не менша за Rental.price (UB-6).
   Початок користування авто поза обсягом (SD-3).
-end note
-
-note bottom of UC_AutoCancel
-  Запускається системою (таймер): 24 год після
-  Rental.startDate, оренду не оплачено → «скасована»,
-  період автомобіля вільний (UNB-3).
 end note
 
 note bottom of UC_Cancel
