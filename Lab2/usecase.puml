@@ -1,0 +1,78 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+
+actor "Користувач" as User
+actor "Гість" as Guest
+actor "Клієнт" as Customer
+actor "Платіжна система\n(Payment Gateway)" as Gateway <<зовнішній сервіс>>
+
+Guest --|> User
+Customer --|> User
+
+rectangle "Система iCARus" {
+
+    usecase "UC-01\nПереглянути каталог\nавтомобілів" as UC_Catalog
+    usecase "UC-02\nПереглянути деталі\nавтомобіля" as UC_Details
+    usecase "UC-03\nПеревірити доступність\nна обраний період" as UC_Availability
+
+    usecase "UC-04\nЗареєструватися" as UC_Register
+
+    usecase "UC-05\nОформити оренду" as UC_Create
+
+    usecase "UC-06\nОплатити оренду" as UC_Pay
+    usecase "UC-07\nПідтвердити оплату" as UC_Confirm
+
+    usecase "UC-08\nСкасувати власну оренду" as UC_Cancel
+    usecase "UC-09\nПереглянути власні\nоренди" as UC_MyRentals
+}
+
+' --- Асоціації акторів ---
+User -- UC_Catalog
+User -- UC_Availability
+User -- UC_Create
+Guest -- UC_Register
+Customer -- UC_Pay
+Customer -- UC_Cancel
+Customer -- UC_MyRentals
+Gateway -- UC_Pay
+Gateway -- UC_Confirm
+
+' --- include (обов'язкова поведінка) ---
+UC_Create ..> UC_Availability : <<include>>
+
+' --- extend (умовна поведінка) ---
+UC_Details ..> UC_Catalog : <<extend>>\n(користувач обрав авто)
+UC_Confirm ..> UC_Pay : <<extend>>\n(платіжна система\nпідтвердила оплату)
+
+note bottom of UC_Create
+  Гість успадковує зв'язок від «Користувач»:
+  система відмовляє і пропонує зареєструватися
+  або увійти (UNB-2, G-2).
+  Перетин періодів: UNB-1, G-3.
+end note
+
+note bottom of UC_Pay
+  Якщо оренду не оплачено за 24 год після
+  Rental.startDate, система сама її скасовує
+  і звільняє період авто (UNB-3, G-5).
+end note
+
+note bottom of UC_Confirm
+  Payment.status = "сплачено" (ED-4).
+  Оренда оплачена, коли сума платежів
+  не менша за Rental.price (UB-6).
+  Початок користування авто поза обсягом (SD-3).
+end note
+
+note bottom of UC_Cancel
+  Клієнт скасовує лише власну оренду (UB-2, ED-5).
+end note
+
+@enduml
