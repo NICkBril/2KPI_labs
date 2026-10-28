@@ -1,0 +1,72 @@
+@startuml
+title G-1 — Успішне створення оренди доступного автомобіля
+skinparam shadowing false
+autonumber
+
+actor "Customer" as Customer
+participant "iCARus UI" as UI
+participant "RentalService" as RS
+participant "AuthService" as Auth
+participant "AvailabilityService" as AS
+participant "PricingService" as PS
+participant "CarRepository" as CR
+participant "RentalRepository" as RR
+
+Customer -> UI : submitRental(carId, startDate, endDate)
+activate UI
+UI -> RS : createRental(sessionToken, carId, startDate, endDate)
+activate RS
+
+RS -> Auth : validateSession(sessionToken)
+activate Auth
+Auth --> RS : AuthResult(authenticated = true, customerId)
+deactivate Auth
+
+RS -> AS : checkAvailability(carId, startDate, endDate)
+activate AS
+AS -> CR : findCarById(carId)
+activate CR
+CR --> AS : car
+deactivate CR
+
+alt [car.status ∈ {"вільна", "в оренді"}]
+    AS -> RR : findBlockingRentals(carId, startDate, endDate)
+    activate RR
+    RR --> AS : blockingRentals = [ ]
+    deactivate RR
+    AS --> RS : available = true\n(блокуючих оренд немає)
+else [car.status ∈ {"на обслуговуванні", "недоступна"}]
+    AS --> RS : available = false
+    note right of AS : У G-1 ця гілка не виконується
+end
+deactivate AS
+
+alt [available = true]
+    RS -> PS : calculatePrice(carId, startDate, endDate)
+    activate PS
+    PS -> CR : findModelByCarId(carId)
+    activate CR
+    CR --> PS : carModel (dailyRate)
+    deactivate CR
+    PS --> RS : totalPrice
+    deactivate PS
+
+    RS -> RS : buildRental(customerId, carId, startDate, endDate,\ntotalPrice, status = "запланована")
+    RS -> RR : saveRental(rental)
+    activate RR
+    note right of RR
+        Перевірка перетину та збереження
+        мають запобігати подвійному бронюванню
+    end note
+    RR --> RS : savedRental(id)
+    deactivate RR
+
+    RS --> UI : RentalCreated(rentalId)
+    UI --> Customer : Оренду створено зі статусом «запланована»
+else [available = false]
+    note over RS : Відмова через недоступність — див. G-3
+end
+
+deactivate RS
+deactivate UI
+@enduml
