@@ -55,8 +55,9 @@ alt [available = true]
     RS -> RR : saveRental(rental)
     activate RR
     note right of RR
-        Перевірка перетину та збереження
-        мають запобігати подвійному бронюванню
+        Повторна перевірка перетину під час збереження.
+        Конкретний механізм захисту від конкурентних
+        запитів не визначено (adr/0001, рішення 4).
     end note
     RR --> RS : savedRental(id)
     deactivate RR
