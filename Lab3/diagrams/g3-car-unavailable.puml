@@ -1,0 +1,56 @@
+@startuml
+title G-3 — Автомобіль недоступний на обраний період
+skinparam shadowing false
+autonumber
+
+actor "Customer" as Customer
+participant "iCARus UI" as UI
+participant "RentalService" as RS
+participant "AuthService" as Auth
+participant "AvailabilityService" as AS
+participant "CarRepository" as CR
+participant "RentalRepository" as RR
+
+Customer -> UI : submitRental(carId, startDate, endDate)
+activate UI
+UI -> RS : createRental(sessionToken, carId, startDate, endDate)
+activate RS
+
+RS -> Auth : validateSession(sessionToken)
+activate Auth
+Auth --> RS : AuthResult(authenticated = true, customerId)
+deactivate Auth
+
+RS -> AS : checkAvailability(carId, startDate, endDate)
+activate AS
+AS -> CR : findCarById(carId)
+activate CR
+CR --> AS : car
+deactivate CR
+
+alt [car.status ∈ {"вільна", "в оренді"}]
+    AS -> RR : findBlockingRentals(carId, startDate, endDate)
+    activate RR
+    RR --> AS : blockingRentals ≠ [ ]\n(серед них оренда зі статусом\n«запланована» або «активна»)
+    deactivate RR
+    AS --> RS : available = false\n(є блокуючі оренди)
+else [car.status ∈ {"на обслуговуванні", "недоступна"}]
+    AS --> RS : available = false
+    note right of AS : У G-3 ця гілка не виконується
+end
+deactivate AS
+
+alt [available = false]
+    RS --> UI : RentalRejected(CAR_UNAVAILABLE)
+    UI --> Customer : Автомобіль недоступний на обраний період
+    note right of RS
+      PricingService і saveRental()
+      не викликаються, Rental не створюється
+    end note
+else [available = true]
+    note over RS : Створення оренди — див. G-1
+end
+
+deactivate RS
+deactivate UI
+@enduml
