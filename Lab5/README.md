@@ -16,3 +16,4 @@
 - `spec.md` — опис архітектури iCARus.
 - `component-diagram.puml` — вихідний код діаграми компонентів у форматі PlantUML.
 - `component-diagram.png` — зображення діаграми компонентів.
+- `adr/0001-component-diagram.md` — архітектурне рішення щодо структури компонентної діаграми iCARus.
