@@ -1,0 +1,92 @@
+@startuml
+title iCARus — діаграма компонентів
+left to right direction
+skinparam shadowing false
+
+interface "Payments API" as PAYMENTS
+interface "Payment Callback" as CALLBACK
+
+rectangle "Система iCARus" as System {
+
+  interface "REST API" as REST
+  interface "SQL Access" as SQL
+
+  component "iCARus UI" as UI <<web>>
+
+  component "Backend" as Backend {
+    portin "HTTP in" as http_in
+    portin "webhook in" as webhook_in
+    portout "PSP out" as psp_out
+    portout "SQL out" as sql_out
+
+    package "API layer" {
+      component "API Router" as Router
+    }
+
+    package "Service layer" {
+      component "CatalogService" as CatalogService
+      component "AvailabilityService" as AvailabilityService
+      component "PricingService" as PricingService
+      component "AuthService" as AuthService
+      component "RentalService" as RentalService
+      component "PaymentService" as PaymentService
+      component "DeadlineScheduler" as DeadlineScheduler <<timer>>
+    }
+
+    package "Integration layer" {
+      component "PaymentGatewayClient" as GatewayClient
+    }
+
+    package "Data Access layer" {
+      component "CarRepository" as CarRepository
+      component "CustomerRepository" as CustomerRepository
+      component "RentalRepository" as RentalRepository
+      component "PaymentRepository" as PaymentRepository
+    }
+  }
+
+  database "iCARus DB" as DB <<relational>>
+}
+
+component "Payment Gateway" as PSP <<external>>
+
+
+UI ..> REST : requires
+REST - http_in
+PSP ..> CALLBACK : requires
+CALLBACK - webhook_in
+psp_out ..> PAYMENTS : requires
+PAYMENTS - PSP
+
+http_in --> Router
+webhook_in --> Router
+GatewayClient --> psp_out
+CarRepository --> sql_out
+CustomerRepository --> sql_out
+RentalRepository --> sql_out
+PaymentRepository --> sql_out
+sql_out ..> SQL : requires
+SQL - DB
+
+Router ..> CatalogService
+Router ..> AvailabilityService
+Router ..> AuthService
+Router ..> RentalService
+Router ..> PaymentService
+
+RentalService ..> AuthService
+RentalService ..> AvailabilityService
+RentalService ..> PricingService
+PaymentService ..> RentalService
+PaymentService ..> AuthService
+DeadlineScheduler ..> PaymentService
+
+PaymentService ..> GatewayClient
+CatalogService ..> CarRepository
+AvailabilityService ..> CarRepository
+AvailabilityService ..> RentalRepository
+PricingService ..> CarRepository
+AuthService ..> CustomerRepository
+RentalService ..> RentalRepository
+PaymentService ..> PaymentRepository
+@enduml
