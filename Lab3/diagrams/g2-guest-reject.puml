@@ -1,0 +1,36 @@
+@startuml
+title G-2 — Гість намагається створити оренду
+skinparam shadowing false
+autonumber
+
+actor "Guest" as Guest
+participant "iCARus UI" as UI
+participant "RentalService" as RS
+participant "AuthService" as Auth
+
+Guest -> UI : submitRental(carId, startDate, endDate)
+activate UI
+UI -> RS : createRental(sessionToken, carId, startDate, endDate)
+activate RS
+
+RS -> Auth : validateSession(sessionToken)
+activate Auth
+Auth --> RS : AuthResult(authenticated = false)
+deactivate Auth
+
+alt [authenticated = false]
+    RS --> UI : RentalRejected(AUTH_REQUIRED)
+    UI --> Guest : Пропозиція зареєструватися або увійти
+    note right of UI
+      AvailabilityService, PricingService
+      і RentalRepository не викликаються.
+      Реєстрація (UC-04) і вхід поза межами
+      цього сценарію.
+    end note
+else [authenticated = true]
+    note over RS : Далі — створення оренди, див. G-1
+end
+
+deactivate RS
+deactivate UI
+@enduml
